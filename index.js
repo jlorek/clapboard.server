@@ -21,10 +21,34 @@
 
     // socket.io stuff
     io.on('connection', function (socket) {
-        console.log('a user connected');
+        console.log('user connected with ID ' + socket.client.id);
+
         socket.on('add-data', function (message) {
             console.log('add-data: ' + JSON.stringify(message));
-            io.emit('data', message);    
+            io.emit('data', message);
+
+            if (socket.board) {
+                io.to(socket.board).emit('data', message);
+            }
+        });
+
+        socket.on("create", function (message) {
+            var id = makeid();
+            socket.join(id);
+            socket.board = id;
+            socket.send("create-success", { board: id });
+        });
+
+        socket.on("join", function (message) {
+            // leave room if already joined
+            if (socket.board) {
+                socket.leave(socket.board);
+            }
+
+            socket.join(message.board);
+            socket.board = message.board;
+            io.to(socket.board).emit("new-user", {id: socket.client.id});
+            socket.send("join-success");
         });
     });
 
@@ -54,4 +78,14 @@
     http.listen(port, function () {
         console.log('clipboard service up and running on port ' + port);
     });
+
+    function makeid() {
+        var text = "";
+        var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+        for (var i = 0; i < 5; i++)
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+        return text;
+    }
 })();
