@@ -32,23 +32,32 @@
             }
         });
 
-        socket.on("create", function (message) {
-            var id = makeid();
-            socket.join(id);
-            socket.board = id;
-            socket.send("create-success", { board: id });
-        });
-
-        socket.on("join", function (message) {
+        socket.on("create", function (message, callback) {
             // leave room if already joined
             if (socket.board) {
                 socket.leave(socket.board);
             }
 
-            socket.join(message.board);
-            socket.board = message.board;
-            io.to(socket.board).emit("new-user", {id: socket.client.id});
-            socket.send("join-success");
+            var id = makeid();
+            socket.join(id);
+            socket.board = id;
+            // socket.emit("create-success", { board: id });
+            callback({success: true, id: id});
+        });
+
+        socket.on("join", function (message, callback) {
+            // leave room if already joined
+            if (socket.board) {
+                socket.leave(socket.board);
+            }
+
+            socket.join(message.id);
+            socket.board = message.id;
+            io.to(socket.board).emit("new-user joined ", {id: socket.client.id});
+            // send vs. emit?
+            // send sends a message event
+            // socket.emit("join-success");
+            callback({success: true});
         });
     });
 
